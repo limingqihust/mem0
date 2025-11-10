@@ -26,7 +26,8 @@ PROMPT = """
 class RAGManager:
     def __init__(self, data_path="dataset/locomo10_rag.json", chunk_size=500, k=1):
         self.model = os.getenv("MODEL")
-        self.client = OpenAI()
+        # self.client = OpenAI()
+        self.client = OpenAI(base_url = "http://localhost:11434/v1", api_key = "ollama", timeout = 3000)
         self.data_path = data_path
         self.chunk_size = chunk_size
         self.k = k
@@ -116,8 +117,8 @@ class RAGManager:
         Create chunks using tiktoken for more accurate token counting
         """
         # Get the encoding for the model
-        encoding = tiktoken.encoding_for_model(os.getenv("EMBEDDING_MODEL"))
-
+        # encoding = tiktoken.encoding_for_model(os.getenv("EMBEDDING_MODEL"))
+        encoding = tiktoken.get_encoding("cl100k_base")
         documents = self.clean_chat_history(chat_history)
 
         if chunk_size == -1:

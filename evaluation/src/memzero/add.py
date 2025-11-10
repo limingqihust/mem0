@@ -2,12 +2,14 @@ import json
 import os
 import threading
 import time
+import random
 from concurrent.futures import ThreadPoolExecutor
 
 from dotenv import load_dotenv
 from tqdm import tqdm
 
 from mem0 import MemoryClient
+from mem0.exceptions import RateLimitError
 
 load_dotenv()
 
@@ -55,6 +57,8 @@ class MemoryADD:
         self.data_path = data_path
         self.data = None
         self.is_graph = is_graph
+        max_concurrent = 5
+        self.semaphore = threading.Semaphore(max_concurrent)
         if data_path:
             self.load_data()
 
@@ -66,10 +70,18 @@ class MemoryADD:
     def add_memory(self, user_id, message, metadata, retries=3):
         for attempt in range(retries):
             try:
-                _ = self.mem0_client.add(
-                    message, user_id=user_id, version="v2", metadata=metadata, enable_graph=self.is_graph
-                )
+                with self.semaphore:
+                    _ = self.mem0_client.add(
+                        message, user_id=user_id, version="v2", metadata=metadata, enable_graph=self.is_graph
+                    )
                 return
+            except RateLimitError as e:
+                wait = (2 ** attempt) + random.random()
+                if attempt < retries - 1:
+                    time.sleep(wait)
+                    continue
+                else:
+                    raise
             except Exception as e:
                 if attempt < retries - 1:
                     time.sleep(1)  # Wait before retrying

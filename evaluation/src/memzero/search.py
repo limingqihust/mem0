@@ -23,7 +23,7 @@ class MemorySearch:
             project_id=os.getenv("MEM0_PROJECT_ID"),
         )
         self.top_k = top_k
-        self.openai_client = OpenAI()
+        self.openai_client = OpenAI(base_url = "http://localhost:11434/v1", api_key = "ollama")
         self.results = defaultdict(list)
         self.output_path = output_path
         self.filter_memories = filter_memories
@@ -50,8 +50,13 @@ class MemorySearch:
                         output_format="v1.1",
                     )
                 else:
+                    # memories = self.mem0_client.search(
+                    #     query, user_id=user_id, top_k=self.top_k, filter_memories=self.filter_memories
+                    # )
                     memories = self.mem0_client.search(
-                        query, user_id=user_id, top_k=self.top_k, filter_memories=self.filter_memories
+                        query=query,
+                        filters={"user_id": user_id}, 
+                        limit=self.top_k,
                     )
                 break
             except Exception as e:
@@ -69,7 +74,8 @@ class MemorySearch:
                     "timestamp": memory["metadata"]["timestamp"],
                     "score": round(memory["score"], 2),
                 }
-                for memory in memories
+                # for memory in memories
+                for memory in memories["results"]
             ]
             graph_memories = None
         else:
